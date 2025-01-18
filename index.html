@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Location-Enabled Form Submission</title>
+    <title>Attendance Location Verification</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
@@ -9,102 +9,164 @@
             max-width: 600px;
             margin: 20px auto;
             padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .status {
-            margin: 10px 0;
-            padding: 10px;
+            margin: 15px 0;
+            padding: 15px;
             border-radius: 4px;
+            display: none;
         }
         .error {
             background-color: #ffebee;
             color: #c62828;
+            border-left: 4px solid #c62828;
         }
         .success {
             background-color: #e8f5e9;
             color: #2e7d32;
+            border-left: 4px solid #2e7d32;
+        }
+        .loading {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            border-left: 4px solid #1565c0;
         }
         button {
-            background-color: #4CAF50;
+            background-color: #1976d2;
             color: white;
-            padding: 10px 20px;
+            padding: 12px 24px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+            width: 100%;
+            margin: 10px 0;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #1565c0;
         }
         button:disabled {
             background-color: #cccccc;
             cursor: not-allowed;
         }
+        #formFrame {
+            width: 100%;
+            height: 600px;
+            border: none;
+            margin-top: 20px;
+            display: none;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .instructions {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
-    <h2>Attendance Verification</h2>
-    <div id="locationStatus" class="status"></div>
-    <button id="verifyLocation" onclick="getLocation()">Verify My Location</button>
-    
-    <div id="formRedirect" style="display: none;">
-        <p class="success">Location verified! Click below to complete your attendance:</p>
-        <button id="submitButton" onclick="redirectToForm()">Complete Attendance</button>
+    <div class="container">
+        <div class="header">
+            <h2>Attendance Location Verification</h2>
+        </div>
+        
+        <div class="instructions">
+            Please verify your location to proceed with attendance marking. Make sure your device's location services are enabled.
+        </div>
+
+        <div id="locationStatus" class="status"></div>
+        
+        <button id="verifyLocation" onclick="getLocation()">Verify My Location</button>
+        
+        <div id="formContainer" style="display: none;">
+            <button id="submitButton" onclick="showForm()">Proceed to Attendance Form</button>
+            <iframe id="formFrame"></iframe>
+        </div>
     </div>
 
     <script>
-        let latitude, longitude;
-        
-        function getLocation() {
+        // Replace this with your actual Google Form URL
+        const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeFOCW-JwIeMzCIToyN0CP_gexj4kH99W2wI8WneG77TOpXnQ/viewform?usp=dialog';
+        let userLocation = null;
+
+        function showStatus(message, type) {
             const statusDiv = document.getElementById('locationStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+
+        function getLocation() {
+            const verifyButton = document.getElementById('verifyLocation');
+            verifyButton.disabled = true;
+            
+            showStatus('Checking your location...', 'loading');
             
             if (navigator.geolocation) {
-                statusDiv.className = 'status';
-                statusDiv.textContent = 'Getting your location...';
-                
                 navigator.geolocation.getCurrentPosition(
                     function(position) {
-                        latitude = position.coords.latitude;
-                        longitude = position.coords.longitude;
+                        userLocation = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude
+                        };
                         
-                        // Here you can add validation for specific coordinates
-                        // For example, checking if user is within certain radius
-                        
-                        statusDiv.className = 'status success';
-                        statusDiv.textContent = 'Location successfully verified!';
-                        
-                        // Show the form redirect button
-                        document.getElementById('formRedirect').style.display = 'block';
+                        showStatus('Location successfully verified! You can now proceed to the attendance form.', 'success');
+                        document.getElementById('formContainer').style.display = 'block';
+                        verifyButton.style.display = 'none';
                     },
                     function(error) {
-                        statusDiv.className = 'status error';
+                        let errorMessage = 'Error getting location: ';
                         switch(error.code) {
                             case error.PERMISSION_DENIED:
-                                statusDiv.textContent = "Location access denied. Please enable location services to verify attendance.";
+                                errorMessage += "Please enable location access in your browser settings and try again.";
                                 break;
                             case error.POSITION_UNAVAILABLE:
-                                statusDiv.textContent = "Location information unavailable. Please try again.";
+                                errorMessage += "Location information is unavailable. Please try again.";
                                 break;
                             case error.TIMEOUT:
-                                statusDiv.textContent = "Location request timed out. Please try again.";
+                                errorMessage += "Location request timed out. Please try again.";
                                 break;
                             default:
-                                statusDiv.textContent = "An unknown error occurred. Please try again.";
-                                break;
+                                errorMessage += "An unknown error occurred. Please try again.";
                         }
+                        showStatus(errorMessage, 'error');
+                        verifyButton.disabled = false;
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
                     }
                 );
             } else {
-                statusDiv.className = 'status error';
-                statusDiv.textContent = "Geolocation is not supported by this browser.";
+                showStatus('Geolocation is not supported by this browser. Please use a modern browser with location services.', 'error');
+                verifyButton.disabled = false;
             }
         }
-        
-        function redirectToForm() {
-            // Replace YOUR_GOOGLE_FORM_URL with your actual Google Form URL
-            const googleFormUrl = 'https://docs.google.com/forms/d/1M5KCIPibqMJEAE99KV_Scl_Soj98WktPl3sXlc_kMok/prefill';
+
+        function showForm() {
+            if (!userLocation) {
+                showStatus('Please verify your location first.', 'error');
+                return;
+            }
             
-            // Add location parameters to the URL
-            // Note: You'll need to match these parameter names with your form field IDs
-            const formUrlWithLocation = `${googleFormUrl}?usp=pp_url&entry.55209068=${latitude}&entry.843769187=${longitude}`;
+            const formFrame = document.getElementById('formFrame');
+            formFrame.src = FORM_URL;
+            formFrame.style.display = 'block';
             
-            window.location.href = formUrlWithLocation;
+            // Hide the proceed button once form is shown
+            document.getElementById('submitButton').style.display = 'none';
         }
     </script>
 </body>
