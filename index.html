@@ -97,8 +97,15 @@
 
     <script>
         // Replace this with your actual Google Form URL
-        const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeFOCW-JwIeMzCIToyN0CP_gexj4kH99W2wI8WneG77TOpXnQ/viewform?usp=dialog';
+        const FORM_URL = 'YOUR_GOOGLE_FORM_URL';
+
+        // Replace with your Google Form latitude and longitude input field IDs (found in the Google Form HTML)
+        const LATITUDE_FIELD_ID = 'entry.55209068';  // Replace 'entry.xxxxxxxxxxxxx' with your latitude field id
+        const LONGITUDE_FIELD_ID = 'entry.843769187';  // Replace 'entry.yyyyyyyyyyyyy' with your longitude field id
         let userLocation = null;
+        //https://docs.google.com/forms/d/e/1FAIpQLSeFOCW-JwIeMzCIToyN0CP_gexj4kH99W2wI8WneG77TOpXnQ/viewform?usp=pp_url&entry.2013307535=a&entry.943853679=6&entry.55209068=test&entry.843769187=test1
+        // Initial status on page load
+         showStatus('Please click the Verify button to get started', 'loading');
 
         function showStatus(message, type) {
             const statusDiv = document.getElementById('locationStatus');
@@ -155,19 +162,32 @@
             }
         }
 
+
         function showForm() {
-            if (!userLocation) {
+           if (!userLocation) {
                 showStatus('Please verify your location first.', 'error');
                 return;
-            }
-            
-            const formFrame = document.getElementById('formFrame');
-            formFrame.src = FORM_URL;
-            formFrame.style.display = 'block';
-            
-            // Hide the proceed button once form is shown
-            document.getElementById('submitButton').style.display = 'none';
-        }
+           }
+           if (!LATITUDE_FIELD_ID || !LONGITUDE_FIELD_ID) {
+            showStatus('Error: Google Form Latitude or Longitude IDs are not defined, contact support.', 'error');
+            return;
+           }
+
+           const formFrame = document.getElementById('formFrame');
+
+            // Construct the Google Form URL with latitude and longitude as parameters
+            let formUrlWithParams = new URL(FORM_URL);
+            formUrlWithParams.searchParams.append(LATITUDE_FIELD_ID, userLocation.latitude);
+            formUrlWithParams.searchParams.append(LONGITUDE_FIELD_ID, userLocation.longitude);
+
+           formFrame.src = formUrlWithParams;
+           formFrame.style.display = 'block';
+
+           // Hide the proceed button once form is shown
+           document.getElementById('submitButton').style.display = 'none';
+       }
+
+
     </script>
 </body>
 </html>
